@@ -1,1 +1,480 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lista da Casa Nova</title>
+<meta name="description" content="Lista de presentes de chá de casa nova. Escolha um item e ele sai da lista na hora.">
+<meta property="og:title" content="Lista da Casa Nova">
+<meta property="og:description" content="Escolha seu presente — cada item pode ser escolhido por uma pessoa só.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏡</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --paper:#f7f4ed; --surface:#fffdf8;
+    --ink:#1f2a26; --ink-soft:#5c675f; --ink-faint:#8d8779;
+    --line:#ded6c6; --line-soft:#eae3d6;
+    --accent:#2f6b57; --accent-ink:#ffffff;
+    --taken:#9a9284; --alert:#9d4c3a; --focus:#2f6b57;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      color-scheme: dark;
+      --paper:#14191a; --surface:#1b2122;
+      --ink:#eae4d8; --ink-soft:#a8b0a7; --ink-faint:#7b8279;
+      --line:#2c3433; --line-soft:#232a2a;
+      --accent:#79b79c; --accent-ink:#10201a;
+      --taken:#6f776e; --alert:#d98a74; --focus:#79b79c;
+    }
+  }
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Karla",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  img{ max-width:100%; }
+  .wrap{ max-width:720px; margin:0 auto; padding-inline:20px; padding-block:0 64px; }
 
+  header.top{ padding-block:40px 20px; border-bottom:1px solid var(--line); }
+  .eyebrow{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint); margin:0 0 10px;
+  }
+  h1{
+    font-family:"Fraunces",Georgia,serif; font-weight:600;
+    font-size:clamp(30px,7vw,44px); line-height:1.08; margin:0;
+    text-wrap:balance; letter-spacing:-.01em;
+  }
+  .lede{ margin:14px 0 0; color:var(--ink-soft); max-width:46ch; }
+
+  .meter{ margin-top:26px; }
+  .meter-row{
+    display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:12px;
+    letter-spacing:.04em; color:var(--ink-soft); font-variant-numeric:tabular-nums;
+  }
+  .meter-track{ margin-top:8px; height:3px; background:var(--line-soft); border-radius:2px; overflow:hidden; }
+  .meter-fill{ height:100%; width:0%; background:var(--accent); transition:width .45s cubic-bezier(.4,0,.2,1); }
+
+  .ident{
+    position:sticky; top:env(safe-area-inset-top,0px); z-index:20;
+    background:var(--paper); padding-block:14px; border-bottom:1px solid var(--line);
+    display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center;
+  }
+  .ident label{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); flex:0 0 auto;
+  }
+  .ident input[type=text]{
+    flex:1 1 200px; min-width:0; font-family:"Karla",sans-serif; font-size:16px;
+    color:var(--ink); background:var(--surface); border:1px solid var(--line);
+    border-radius:3px; padding:9px 12px;
+  }
+  .ident input[type=text]:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+  .filter{ flex:0 0 auto; display:flex; align-items:center; gap:7px; font-size:13px; color:var(--ink-soft); cursor:pointer; user-select:none; }
+  .filter input{ accent-color:var(--accent); width:16px; height:16px; cursor:pointer; }
+
+  .notice{
+    margin-top:16px; padding:12px 14px; border-radius:4px;
+    border:1px solid var(--line); background:var(--surface); font-size:14px; color:var(--ink-soft);
+  }
+  .notice.warn{ border-color:var(--alert); color:var(--alert); }
+  .notice.good{ border-color:var(--accent); color:var(--accent); }
+
+  section{ margin-top:40px; }
+  .sec-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding-bottom:8px; border-bottom:2px solid var(--ink); }
+  .sec-head h2{ font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:20px; margin:0; letter-spacing:-.005em; }
+  .sec-count{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px; letter-spacing:.08em;
+    color:var(--ink-faint); font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+
+  ul.items{ list-style:none; margin:0; padding:0; }
+  li.item{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding-block:13px; border-bottom:1px solid var(--line-soft); }
+  .item-name{ flex:1 1 180px; min-width:0; }
+  .item-name b{ font-weight:500; }
+  .item.gone .item-name b{ color:var(--taken); text-decoration:line-through; text-decoration-thickness:1px; }
+  .who{
+    display:block; font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11px; letter-spacing:.06em; color:var(--taken); margin-top:3px;
+  }
+  .actions{ flex:0 0 auto; display:flex; gap:8px; align-items:center; }
+
+  button{
+    font-family:"Karla",sans-serif; font-size:14px; font-weight:500; border-radius:3px;
+    cursor:pointer; padding:7px 14px; border:1px solid var(--accent);
+    background:transparent; color:var(--accent); transition:background .15s ease,color .15s ease;
+  }
+  button:hover:not(:disabled){ background:var(--accent); color:var(--accent-ink); }
+  button:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  button:disabled{ opacity:.45; cursor:default; }
+  button.solid{ background:var(--accent); color:var(--accent-ink); }
+  button.quiet{ border-color:var(--line); color:var(--ink-soft); }
+  button.quiet:hover:not(:disabled){ background:var(--line-soft); color:var(--ink); }
+  .tag{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--taken); border:1px solid var(--line);
+    border-radius:2px; padding:4px 8px; white-space:nowrap;
+  }
+
+  footer.end{ margin-top:52px; padding-top:20px; border-top:1px solid var(--line); font-size:13px; color:var(--ink-faint); }
+  .empty{ padding:26px 0; color:var(--ink-faint); font-style:italic; }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">Chá de casa nova · 45 itens</p>
+    <h1>Lista da Casa Nova</h1>
+    <p class="lede">Escreva seu nome, escolha um item e ele sai da lista na hora — assim ninguém repete o presente de ninguém.</p>
+    <div class="meter">
+      <div class="meter-row">
+        <span id="meterText">carregando…</span>
+        <span id="meterPct"></span>
+      </div>
+      <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
+    </div>
+  </header>
+
+  <div class="ident">
+    <label for="nome">Seu nome</label>
+    <input type="text" id="nome" placeholder="ex.: Ana e Rafael" autocomplete="name" maxlength="60">
+    <label class="filter" for="soDisponiveis">
+      <input type="checkbox" id="soDisponiveis">
+      Só disponíveis
+    </label>
+  </div>
+
+  <div class="notice" id="status">Carregando a lista…</div>
+  <div id="lista"></div>
+
+  <footer class="end">
+    <p>Cada item pode ser escolhido por uma pessoa só. Se mudar de ideia, use <b>Devolver</b> na sua própria escolha.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var GRUPOS = [
+    { nome:"Banheiro", itens:[
+      ["tapete-banheiro","Tapete para banheiro"],
+      ["desentupidor-pia","Desentupidor de pia"],
+      ["escova-vaso","Escova para vaso sanitário"],
+      ["espelho","Espelho"],
+      ["porta-sabonete","Porta-sabonete"],
+      ["tapete-box","Tapete antiderrapante para box"]
+    ]},
+    { nome:"Cozinha", itens:[
+      ["frigideiras","Frigideiras"],
+      ["potes-hermeticos","Potes herméticos"],
+      ["centrifuga-salada","Centrífuga de salada"],
+      ["chaleira","Chaleira"],
+      ["escorredor-louca","Escorredor de louça"],
+      ["espremedor-fruta","Espremedor de fruta"],
+      ["moedor-tempero","Moedor de tempero"],
+      ["puxa-saco","Puxa-saco"],
+      ["xicara-medidora","Xícara medidora"],
+      ["travessas-servir","Travessas para servir"],
+      ["balde-pinca-gelo","Balde e pinça de gelo"]
+    ]},
+    { nome:"Eletrodomésticos", itens:[
+      ["tanquinho","Tanquinho"],
+      ["micro-ondas","Micro-ondas"],
+      ["liquidificador","Liquidificador"],
+      ["cafeteira","Cafeteira"],
+      ["sanduicheira","Sanduicheira"],
+      ["processador-frutas","Processador de frutas"],
+      ["ferro-passar","Ferro de passar"]
+    ]},
+    { nome:"Limpeza e lavanderia", itens:[
+      ["esfregao","Esfregão"],
+      ["flanela","Flanela"],
+      ["pa-de-lixo","Pá de lixo"],
+      ["pano-de-chao","Pano de chão"],
+      ["rodo","Rodo"],
+      ["vassoura","Vassoura"],
+      ["espanador-po","Espanador de pó"],
+      ["tabua-passar","Tábua de passar roupa"],
+      ["varal-chao","Varal de chão"]
+    ]},
+    { nome:"Quarto e cama", itens:[
+      ["jogo-cama-casal","Jogo de cama casal"],
+      ["lencol","Lençol"],
+      ["fronha","Fronha"],
+      ["travesseiros","Travesseiros"],
+      ["cabide","Cabide"],
+      ["cortina-neutra","Cortina em cor neutra"]
+    ]},
+    { nome:"Sala e decoração", itens:[
+      ["capacho","Capacho"],
+      ["almofadas-decorativas","Almofadas decorativas"],
+      ["almofada-neutra","Almofada em cor neutra"],
+      ["luminaria","Luminária"],
+      ["difusor-aroma","Difusor de aroma"],
+      ["relogio-parede","Relógio de parede"]
+    ]}
+  ];
+
+  var TOTAL = GRUPOS.reduce(function(n,g){ return n + g.itens.length; }, 0);
+  var NOMES = {};
+  GRUPOS.forEach(function(g){ g.itens.forEach(function(p){ NOMES[p[0]] = p[1]; }); });
+
+  var reservas = {};
+  var confirmando = null;
+  var ocupado = false;
+  var senhaAdmin = "";
+
+  var elLista = document.getElementById("lista");
+  var elStatus = document.getElementById("status");
+  var elNome = document.getElementById("nome");
+  var elFiltro = document.getElementById("soDisponiveis");
+  var elMeterText = document.getElementById("meterText");
+  var elMeterPct = document.getElementById("meterPct");
+  var elMeterFill = document.getElementById("meterFill");
+
+  // identidade local: permite a própria pessoa devolver o que escolheu
+  var meuToken = "";
+  try {
+    meuToken = localStorage.getItem("cn_token") || "";
+    if (!meuToken){
+      meuToken = "t" + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+      localStorage.setItem("cn_token", meuToken);
+    }
+    var salvo = localStorage.getItem("cn_nome");
+    if (salvo) elNome.value = salvo;
+  } catch(e){
+    meuToken = "t" + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+  }
+  var meusItens = {};
+  try { meusItens = JSON.parse(localStorage.getItem("cn_meus") || "{}") || {}; } catch(e){ meusItens = {}; }
+  function guardarMeus(){ try { localStorage.setItem("cn_meus", JSON.stringify(meusItens)); } catch(e){} }
+
+  elNome.addEventListener("input", function(){
+    try { localStorage.setItem("cn_nome", elNome.value); } catch(e){}
+  });
+  elFiltro.addEventListener("change", render);
+
+  // modo organizador: abra a página com #admin no fim do endereço
+  if (location.hash === "#admin"){
+    var digitada = window.prompt("Senha do organizador (deixe em branco para sair do modo admin):");
+    if (digitada) senhaAdmin = digitada;
+  }
+
+  function aviso(texto, tipo){
+    elStatus.textContent = texto;
+    elStatus.className = "notice" + (tipo ? " " + tipo : "");
+  }
+
+  function atualizarMedidor(){
+    var n = Object.keys(reservas).length;
+    elMeterText.textContent = n + " de " + TOTAL + " já escolhidos";
+    var pct = Math.round((n / TOTAL) * 100);
+    elMeterPct.textContent = pct + "%";
+    elMeterFill.style.width = pct + "%";
+  }
+
+  function render(){
+    var soDisp = elFiltro.checked;
+    elLista.textContent = "";
+    var algum = false;
+
+    GRUPOS.forEach(function(grupo){
+      var visiveis = grupo.itens.filter(function(p){ return !(soDisp && reservas[p[0]]); });
+      if (!visiveis.length) return;
+      algum = true;
+
+      var sec = document.createElement("section");
+      var head = document.createElement("div");
+      head.className = "sec-head";
+      var h2 = document.createElement("h2");
+      h2.textContent = grupo.nome;
+      var cnt = document.createElement("span");
+      cnt.className = "sec-count";
+      var livres = grupo.itens.filter(function(p){ return !reservas[p[0]]; }).length;
+      cnt.textContent = livres + "/" + grupo.itens.length + " livres";
+      head.appendChild(h2); head.appendChild(cnt);
+      sec.appendChild(head);
+
+      var ul = document.createElement("ul");
+      ul.className = "items";
+      visiveis.forEach(function(par){ ul.appendChild(linha(par[0], par[1])); });
+      sec.appendChild(ul);
+      elLista.appendChild(sec);
+    });
+
+    if (!algum){
+      var p = document.createElement("p");
+      p.className = "empty";
+      p.textContent = "Todos os itens já foram escolhidos. Obrigado!";
+      elLista.appendChild(p);
+    }
+    atualizarMedidor();
+  }
+
+  function linha(slug, nome){
+    var li = document.createElement("li");
+    li.className = "item";
+    var res = reservas[slug];
+    if (res) li.classList.add("gone");
+
+    var bloco = document.createElement("div");
+    bloco.className = "item-name";
+    var b = document.createElement("b");
+    b.textContent = nome;
+    bloco.appendChild(b);
+    if (res && res.nome){
+      var who = document.createElement("span");
+      who.className = "who";
+      who.textContent = "Escolhido por " + res.nome;
+      bloco.appendChild(who);
+    }
+    li.appendChild(bloco);
+
+    var acoes = document.createElement("div");
+    acoes.className = "actions";
+
+    if (res){
+      if (meusItens[slug] || senhaAdmin){
+        var devolver = document.createElement("button");
+        devolver.className = "quiet";
+        devolver.textContent = "Devolver";
+        devolver.addEventListener("click", function(){ devolverItem(slug); });
+        acoes.appendChild(devolver);
+      } else {
+        var tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = "Reservado";
+        acoes.appendChild(tag);
+      }
+    } else if (confirmando === slug){
+      var ok = document.createElement("button");
+      ok.className = "solid";
+      ok.textContent = "Confirmar";
+      ok.addEventListener("click", function(){ reservar(slug); });
+      var nao = document.createElement("button");
+      nao.className = "quiet";
+      nao.textContent = "Cancelar";
+      nao.addEventListener("click", function(){ confirmando = null; render(); });
+      acoes.appendChild(ok); acoes.appendChild(nao);
+    } else {
+      var esc = document.createElement("button");
+      esc.textContent = "Escolher";
+      esc.addEventListener("click", function(){
+        if (!elNome.value.trim()){
+          aviso("Escreva seu nome no campo acima antes de escolher.", "warn");
+          elNome.focus();
+          return;
+        }
+        confirmando = slug;
+        render();
+      });
+      acoes.appendChild(esc);
+    }
+
+    li.appendChild(acoes);
+    return li;
+  }
+
+  function carregar(silencioso){
+    return fetch("/api/reservas", { cache:"no-store" })
+      .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, corpo:j }; }); })
+      .then(function(res){
+        if (!res.ok){
+          aviso(res.corpo.mensagem || "Não consegui carregar a lista.", "warn");
+          return;
+        }
+        reservas = res.corpo.reservas || {};
+        if (!silencioso) aviso("Lista atualizada. Escolha o seu presente abaixo.");
+        render();
+      })
+      .catch(function(){
+        if (!silencioso) aviso("Não consegui carregar a lista. Verifique a conexão e recarregue a página.", "warn");
+      });
+  }
+
+  function reservar(slug){
+    if (ocupado) return;
+    var nome = elNome.value.trim();
+    if (!nome){ aviso("Escreva seu nome no campo acima antes de escolher.", "warn"); return; }
+    ocupado = true;
+    confirmando = null;
+    aviso("Reservando " + NOMES[slug] + "…");
+    render();
+
+    fetch("/api/reservas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: slug, nome: nome, token: meuToken })
+    })
+    .then(function(r){ return r.json().then(function(j){ return { status:r.status, corpo:j }; }); })
+    .then(function(res){
+      if (res.status === 200){
+        reservas[slug] = { nome: nome };
+        meusItens[slug] = true;
+        guardarMeus();
+        aviso("Pronto, " + nome + "! " + NOMES[slug] + " é o seu presente.", "good");
+        render();
+        return;
+      }
+      if (res.status === 409){
+        reservas[slug] = { nome: res.corpo.por || "outra pessoa" };
+        aviso(res.corpo.mensagem || "Esse item acabou de ser escolhido.", "warn");
+        render();
+        return carregar(true);
+      }
+      aviso(res.corpo.mensagem || "Não consegui salvar a escolha. Tente de novo.", "warn");
+      render();
+    })
+    .catch(function(){
+      aviso("Não consegui salvar a escolha. Verifique a conexão e tente de novo.", "warn");
+      render();
+    })
+    .then(function(){ ocupado = false; });
+  }
+
+  function devolverItem(slug){
+    if (ocupado) return;
+    ocupado = true;
+    fetch("/api/reservas", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: slug, token: meuToken, senha: senhaAdmin })
+    })
+    .then(function(r){ return r.json().then(function(j){ return { status:r.status, corpo:j }; }); })
+    .then(function(res){
+      if (res.status === 200){
+        delete reservas[slug];
+        delete meusItens[slug];
+        guardarMeus();
+        aviso(NOMES[slug] + " voltou para a lista.", "good");
+      } else {
+        aviso(res.corpo.mensagem || "Não consegui devolver esse item.", "warn");
+      }
+      render();
+    })
+    .catch(function(){ aviso("Não consegui devolver esse item. Tente de novo.", "warn"); })
+    .then(function(){ ocupado = false; });
+  }
+
+  render();
+  carregar(false);
+
+  // mantém a lista fresca sem recarregar a página
+  setInterval(function(){ if (!ocupado && !document.hidden) carregar(true); }, 20000);
+  document.addEventListener("visibilitychange", function(){
+    if (!document.hidden && !ocupado) carregar(true);
+  });
+})();
+</script>
+</body>
+</html>
