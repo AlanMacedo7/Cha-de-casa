@@ -264,10 +264,22 @@
   });
   elFiltro.addEventListener("change", render);
 
-  // modo organizador: abra a página com #admin no fim do endereço
-  if (location.hash === "#admin"){
-    var digitada = window.prompt("Senha do organizador (deixe em branco para sair do modo admin):");
-    if (digitada) senhaAdmin = digitada;
+  // modo organizador: abra a página com #admin no fim do endereço.
+  // A senha fica só nesta aba e some quando o navegador fecha.
+  try { senhaAdmin = sessionStorage.getItem("cn_senha") || ""; } catch(e){}
+  if (location.hash === "#admin" && !senhaAdmin){
+    var digitada = window.prompt("Senha do organizador:");
+    if (digitada){
+      senhaAdmin = digitada;
+      try { sessionStorage.setItem("cn_senha", senhaAdmin); } catch(e){}
+    }
+  }
+
+  // Cabeçalhos das chamadas: a senha só viaja quando existe.
+  function cabecalhos(){
+    var h = { "Content-Type": "application/json" };
+    if (senhaAdmin) h["x-senha"] = senhaAdmin;
+    return h;
   }
 
   function aviso(texto, tipo){
@@ -332,11 +344,14 @@
     var b = document.createElement("b");
     b.textContent = nome;
     bloco.appendChild(b);
-    if (res && res.nome){
+    // O nome de quem escolheu fica oculto para os convidados: cada pessoa vê
+    // apenas as próprias escolhas. O organizador vê todos os nomes no #admin.
+    if (res){
       var who = document.createElement("span");
       who.className = "who";
-      who.textContent = "Escolhido por " + res.nome;
-      bloco.appendChild(who);
+      if (meusItens[slug]) who.textContent = "Sua escolha";
+      else if (senhaAdmin && res.nome) who.textContent = "Escolhido por " + res.nome;
+      if (who.textContent) bloco.appendChild(who);
     }
     li.appendChild(bloco);
 
@@ -386,7 +401,7 @@
   }
 
   function carregar(silencioso){
-    return fetch("/api/reservas", { cache:"no-store" })
+    return fetch("/api/reservas", { cache:"no-store", headers: cabecalhos() })
       .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, corpo:j }; }); })
       .then(function(res){
         if (!res.ok){
@@ -413,7 +428,7 @@
 
     fetch("/api/reservas", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: cabecalhos(),
       body: JSON.stringify({ slug: slug, nome: nome, token: meuToken })
     })
     .then(function(r){ return r.json().then(function(j){ return { status:r.status, corpo:j }; }); })
@@ -427,7 +442,7 @@
         return;
       }
       if (res.status === 409){
-        reservas[slug] = { nome: res.corpo.por || "outra pessoa" };
+        reservas[slug] = {};
         aviso(res.corpo.mensagem || "Esse item acabou de ser escolhido.", "warn");
         render();
         return carregar(true);
@@ -447,7 +462,7 @@
     ocupado = true;
     fetch("/api/reservas", {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: cabecalhos(),
       body: JSON.stringify({ slug: slug, token: meuToken, senha: senhaAdmin })
     })
     .then(function(r){ return r.json().then(function(j){ return { status:r.status, corpo:j }; }); })

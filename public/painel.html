@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Painel da Lista</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --paper:#f7f4ed; --surface:#fffdf8;
+    --ink:#1f2a26; --ink-soft:#5c675f; --ink-faint:#8d8779;
+    --line:#ded6c6; --line-soft:#eae3d6;
+    --accent:#2f6b57; --accent-ink:#ffffff;
+    --taken:#9a9284; --alert:#9d4c3a; --focus:#2f6b57;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      color-scheme: dark;
+      --paper:#14191a; --surface:#1b2122;
+      --ink:#eae4d8; --ink-soft:#a8b0a7; --ink-faint:#7b8279;
+      --line:#2c3433; --line-soft:#232a2a;
+      --accent:#79b79c; --accent-ink:#10201a;
+      --taken:#6f776e; --alert:#d98a74; --focus:#79b79c;
+    }
+  }
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Karla",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  .wrap{ max-width:720px; margin:0 auto; padding-inline:20px; padding-block:0 64px; }
+
+  header.top{ padding-block:36px 18px; border-bottom:1px solid var(--line); }
+  .eyebrow{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint); margin:0 0 10px;
+  }
+  h1{
+    font-family:"Fraunces",Georgia,serif; font-weight:600;
+    font-size:clamp(28px,6.5vw,38px); line-height:1.1; margin:0; letter-spacing:-.01em;
+  }
+
+  .resumo{ display:flex; gap:28px; flex-wrap:wrap; margin-top:22px; }
+  .stat .n{
+    font-family:"Fraunces",Georgia,serif; font-size:32px; font-weight:600;
+    line-height:1; font-variant-numeric:tabular-nums; display:block;
+  }
+  .stat .r{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10px;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); margin-top:6px; display:block;
+  }
+
+  .barra{ display:flex; gap:8px; flex-wrap:wrap; margin-top:22px; }
+  button{
+    font-family:"Karla",sans-serif; font-size:14px; font-weight:500; border-radius:3px;
+    cursor:pointer; padding:8px 14px; border:1px solid var(--accent);
+    background:transparent; color:var(--accent);
+  }
+  button:hover{ background:var(--accent); color:var(--accent-ink); }
+  button:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  button.quiet{ border-color:var(--line); color:var(--ink-soft); }
+  button.quiet:hover{ background:var(--line-soft); color:var(--ink); }
+
+  .notice{
+    margin-top:16px; padding:11px 14px; border-radius:4px;
+    border:1px solid var(--line); background:var(--surface); font-size:14px; color:var(--ink-soft);
+  }
+  .notice.warn{ border-color:var(--alert); color:var(--alert); }
+  .notice.good{ border-color:var(--accent); color:var(--accent); }
+
+  section{ margin-top:38px; }
+  .sec-head{
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    padding-bottom:8px; border-bottom:2px solid var(--ink);
+  }
+  .sec-head h2{ font-family:"Fraunces",Georgia,serif; font-weight:600; font-size:19px; margin:0; }
+  .sec-count{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
+    letter-spacing:.08em; color:var(--ink-faint); font-variant-numeric:tabular-nums;
+  }
+
+  .pessoa{ padding-block:15px; border-bottom:1px solid var(--line-soft); }
+  .pessoa-nome{
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  }
+  .pessoa-nome b{ font-weight:700; font-size:16px; }
+  .pessoa-nome span{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
+    letter-spacing:.06em; color:var(--ink-faint); white-space:nowrap;
+  }
+  ul.presentes{ list-style:none; margin:8px 0 0; padding:0; }
+  ul.presentes li{
+    display:flex; justify-content:space-between; gap:12px; align-items:baseline;
+    padding:3px 0; color:var(--ink-soft); font-size:15px;
+  }
+  ul.presentes li .quando{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10px;
+    color:var(--ink-faint); white-space:nowrap;
+  }
+
+  .livres{ columns:2; column-gap:22px; margin-top:14px; }
+  .livres p{ margin:0 0 5px; font-size:14px; color:var(--ink-soft); break-inside:avoid; }
+  @media (max-width:420px){ .livres{ columns:1; } }
+
+  .vazio{ padding:24px 0; color:var(--ink-faint); font-style:italic; }
+  footer.end{ margin-top:48px; padding-top:18px; border-top:1px solid var(--line); font-size:13px; color:var(--ink-faint); }
+  footer.end a{ color:var(--accent); }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">Uso do organizador</p>
+    <h1>Painel da Lista</h1>
+    <div class="resumo">
+      <div class="stat"><span class="n" id="nEscolhidos">—</span><span class="r">escolhidos</span></div>
+      <div class="stat"><span class="n" id="nLivres">—</span><span class="r">disponíveis</span></div>
+      <div class="stat"><span class="n" id="nPessoas">—</span><span class="r">pessoas</span></div>
+    </div>
+    <div class="barra">
+      <button id="btnAtualizar">Atualizar</button>
+      <button id="btnWhats">Enviar no WhatsApp</button>
+      <button class="quiet" id="btnCsv">Baixar planilha</button>
+      <button class="quiet" id="btnCopiar">Copiar resumo</button>
+      <button class="quiet" id="btnSair">Sair</button>
+    </div>
+  </header>
+
+  <div class="notice" id="status">Carregando…</div>
+
+  <section id="secPessoas">
+    <div class="sec-head"><h2>Quem escolheu o quê</h2><span class="sec-count" id="contPessoas"></span></div>
+    <div id="listaPessoas"></div>
+  </section>
+
+  <section id="secLivres">
+    <div class="sec-head"><h2>Ainda disponíveis</h2><span class="sec-count" id="contLivres"></span></div>
+    <div class="livres" id="listaLivres"></div>
+  </section>
+
+  <footer class="end">
+    <p>Esta página só lê os dados. Para liberar um item, use <a href="/#admin">a lista com o modo organizador</a>.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var ITENS = {
+    "tapete-banheiro":"Tapete para banheiro","desentupidor-pia":"Desentupidor de pia",
+    "escova-vaso":"Escova para vaso sanitário","espelho":"Espelho",
+    "porta-sabonete":"Porta-sabonete","tapete-box":"Tapete antiderrapante para box",
+    "frigideiras":"Frigideiras","potes-hermeticos":"Potes herméticos",
+    "centrifuga-salada":"Centrífuga de salada","chaleira":"Chaleira",
+    "escorredor-louca":"Escorredor de louça","espremedor-fruta":"Espremedor de fruta",
+    "moedor-tempero":"Moedor de tempero","puxa-saco":"Puxa-saco",
+    "xicara-medidora":"Xícara medidora","travessas-servir":"Travessas para servir",
+    "balde-pinca-gelo":"Balde e pinça de gelo","tanquinho":"Tanquinho",
+    "micro-ondas":"Micro-ondas","liquidificador":"Liquidificador",
+    "cafeteira":"Cafeteira","sanduicheira":"Sanduicheira",
+    "processador-frutas":"Processador de frutas","ferro-passar":"Ferro de passar",
+    "esfregao":"Esfregão","flanela":"Flanela","pa-de-lixo":"Pá de lixo",
+    "pano-de-chao":"Pano de chão","rodo":"Rodo","vassoura":"Vassoura",
+    "espanador-po":"Espanador de pó","tabua-passar":"Tábua de passar roupa",
+    "varal-chao":"Varal de chão","jogo-cama-casal":"Jogo de cama casal",
+    "lencol":"Lençol","fronha":"Fronha","travesseiros":"Travesseiros",
+    "cabide":"Cabide","cortina-neutra":"Cortina em cor neutra","capacho":"Capacho",
+    "almofadas-decorativas":"Almofadas decorativas","almofada-neutra":"Almofada em cor neutra",
+    "luminaria":"Luminária","difusor-aroma":"Difusor de aroma","relogio-parede":"Relógio de parede"
+  };
+
+  var el = function(id){ return document.getElementById(id); };
+  var reservas = {};
+  var resumoTexto = "";
+  var csvTexto = "";
+  var whatsTexto = "";
+
+  // Envolve o campo em aspas se tiver ; " ou quebra de linha
+  function campoCsv(v){
+    var s = String(v == null ? "" : v);
+    return /[;"\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function aviso(txt, tipo){
+    el("status").textContent = txt;
+    el("status").className = "notice" + (tipo ? " " + tipo : "");
+  }
+
+  function quando(ts){
+    if (!ts) return "";
+    try {
+      return new Date(ts).toLocaleString("pt-BR", {
+        day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"
+      });
+    } catch(e){ return ""; }
+  }
+
+  function render(){
+    var slugs = Object.keys(reservas);
+    var totalItens = Object.keys(ITENS).length;
+
+    // agrupa por pessoa, ignorando maiúsculas/minúsculas ao juntar
+    var porPessoa = {};
+    slugs.forEach(function(slug){
+      var nome = (reservas[slug].nome || "Sem nome").trim();
+      var chave = nome.toLowerCase();
+      if (!porPessoa[chave]) porPessoa[chave] = { nome: nome, itens: [] };
+      porPessoa[chave].itens.push({
+        slug: slug,
+        nome: ITENS[slug] || slug,
+        ts: reservas[slug].ts || null
+      });
+    });
+
+    var pessoas = Object.keys(porPessoa).map(function(k){ return porPessoa[k]; });
+    pessoas.forEach(function(p){
+      p.itens.sort(function(a,b){ return (a.ts || 0) - (b.ts || 0); });
+      p.primeiro = p.itens.length ? (p.itens[0].ts || 0) : 0;
+    });
+    pessoas.sort(function(a,b){ return b.primeiro - a.primeiro; });
+
+    el("nEscolhidos").textContent = slugs.length;
+    el("nLivres").textContent = totalItens - slugs.length;
+    el("nPessoas").textContent = pessoas.length;
+    el("contPessoas").textContent = pessoas.length + (pessoas.length === 1 ? " pessoa" : " pessoas");
+
+    // --- quem escolheu o quê ---
+    var destino = el("listaPessoas");
+    destino.textContent = "";
+    if (!pessoas.length){
+      var p0 = document.createElement("p");
+      p0.className = "vazio";
+      p0.textContent = "Ninguém escolheu nada ainda.";
+      destino.appendChild(p0);
+    } else {
+      pessoas.forEach(function(p){
+        var bloco = document.createElement("div");
+        bloco.className = "pessoa";
+
+        var cab = document.createElement("div");
+        cab.className = "pessoa-nome";
+        var b = document.createElement("b");
+        b.textContent = p.nome;
+        var q = document.createElement("span");
+        q.textContent = p.itens.length + (p.itens.length === 1 ? " item" : " itens");
+        cab.appendChild(b); cab.appendChild(q);
+        bloco.appendChild(cab);
+
+        var ul = document.createElement("ul");
+        ul.className = "presentes";
+        p.itens.forEach(function(it){
+          var li = document.createElement("li");
+          var nome = document.createElement("span");
+          nome.textContent = it.nome;
+          var data = document.createElement("span");
+          data.className = "quando";
+          data.textContent = quando(it.ts);
+          li.appendChild(nome); li.appendChild(data);
+          ul.appendChild(li);
+        });
+        bloco.appendChild(ul);
+        destino.appendChild(bloco);
+      });
+    }
+
+    // --- ainda disponíveis ---
+    var livres = Object.keys(ITENS).filter(function(s){ return !reservas[s]; });
+    el("contLivres").textContent = livres.length + " de " + totalItens;
+    var dl = el("listaLivres");
+    dl.textContent = "";
+    if (!livres.length){
+      var p1 = document.createElement("p");
+      p1.className = "vazio";
+      p1.textContent = "Todos os itens já foram escolhidos.";
+      dl.appendChild(p1);
+    } else {
+      livres.forEach(function(s){
+        var p2 = document.createElement("p");
+        p2.textContent = ITENS[s];
+        dl.appendChild(p2);
+      });
+    }
+
+    // --- texto para copiar ---
+    var linhas = ["LISTA DA CASA NOVA — " + slugs.length + " de " + totalItens + " escolhidos", ""];
+    pessoas.forEach(function(p){
+      linhas.push(p.nome + " (" + p.itens.length + "):");
+      p.itens.forEach(function(it){ linhas.push("  - " + it.nome); });
+      linhas.push("");
+    });
+    if (livres.length){
+      linhas.push("AINDA DISPONÍVEIS (" + livres.length + "):");
+      livres.forEach(function(s){ linhas.push("  - " + ITENS[s]); });
+    }
+    resumoTexto = linhas.join("\n");
+
+    // --- planilha: uma linha por item, inclusive os ainda livres ---
+    var csv = ["Presente;Quem escolheu;Data;Status"];
+    Object.keys(ITENS).forEach(function(s){
+      var r = reservas[s];
+      csv.push([
+        campoCsv(ITENS[s]),
+        campoCsv(r ? (r.nome || "") : ""),
+        campoCsv(r ? quando(r.ts) : ""),
+        r ? "Escolhido" : "Disponível"
+      ].join(";"));
+    });
+    csvTexto = csv.join("\r\n");
+
+    // --- versão curta, para caber numa mensagem ---
+    var curto = ["*Lista da Casa Nova* — " + slugs.length + "/" + totalItens + " escolhidos", ""];
+    pessoas.forEach(function(p){
+      curto.push("*" + p.nome + "*: " + p.itens.map(function(it){ return it.nome; }).join(", "));
+    });
+    if (livres.length){
+      curto.push("");
+      curto.push("_Ainda disponíveis (" + livres.length + "):_ " + livres.map(function(s){ return ITENS[s]; }).join(", "));
+    }
+    whatsTexto = curto.join("\n");
+  }
+
+  // A senha fica só nesta aba do navegador e some quando ela é fechada.
+  var senha = "";
+  try { senha = sessionStorage.getItem("cn_senha") || ""; } catch(e){}
+
+  function pedirSenha(){
+    var digitada = window.prompt("Senha do organizador:");
+    if (!digitada) return false;
+    senha = digitada;
+    try { sessionStorage.setItem("cn_senha", senha); } catch(e){}
+    return true;
+  }
+
+  function esquecerSenha(){
+    senha = "";
+    try { sessionStorage.removeItem("cn_senha"); } catch(e){}
+  }
+
+  function carregar(silencioso){
+    if (!senha && !pedirSenha()){
+      aviso("Sem a senha do organizador não é possível ver os nomes.", "warn");
+      return Promise.resolve();
+    }
+    if (!silencioso) aviso("Atualizando…");
+    return fetch("/api/reservas?completo=1&t=" + Date.now(), {
+      cache: "no-store",
+      headers: { "x-senha": senha }
+    })
+      .then(function(r){ return r.json().then(function(j){ return { status:r.status, corpo:j }; }); })
+      .then(function(res){
+        if (res.status === 401){
+          esquecerSenha();
+          aviso((res.corpo && res.corpo.mensagem) || "Senha incorreta.", "warn");
+          return;
+        }
+        var corpo = res.corpo;
+        if (!corpo || !corpo.reservas){
+          aviso((corpo && corpo.mensagem) || "Não consegui carregar os dados.", "warn");
+          return;
+        }
+        reservas = corpo.reservas;
+        render();
+        aviso("Atualizado às " + new Date().toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"}) + ".");
+      })
+      .catch(function(){
+        aviso("Não consegui carregar os dados. Verifique a conexão.", "warn");
+      });
+  }
+
+  el("btnAtualizar").addEventListener("click", function(){ carregar(false); });
+
+  el("btnWhats").addEventListener("click", function(){
+    if (!whatsTexto){ aviso("Não há nada para enviar ainda.", "warn"); return; }
+    window.open("https://wa.me/?text=" + encodeURIComponent(whatsTexto), "_blank");
+  });
+
+  el("btnCsv").addEventListener("click", function(){
+    if (!csvTexto){ aviso("Não há nada para exportar ainda.", "warn"); return; }
+    try {
+      // O ﻿ (BOM) faz o Excel abrir os acentos corretamente
+      var blob = new Blob(["﻿" + csvTexto], { type: "text/csv;charset=utf-8;" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "lista-casa-nova-" + new Date().toISOString().slice(0, 10) + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+      aviso("Planilha baixada. Abra no Excel ou no Google Sheets.", "good");
+    } catch(e){
+      aviso("O navegador bloqueou o download. Use o Copiar resumo.", "warn");
+    }
+  });
+
+  el("btnCopiar").addEventListener("click", function(){
+    if (!resumoTexto){ aviso("Não há nada para copiar ainda.", "warn"); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(resumoTexto).then(function(){
+        aviso("Resumo copiado. Pode colar no WhatsApp ou no bloco de notas.", "good");
+      }, function(){
+        aviso("O navegador bloqueou a cópia. Selecione o texto da página manualmente.", "warn");
+      });
+    } else {
+      aviso("Este navegador não permite copiar automaticamente.", "warn");
+    }
+  });
+
+  el("btnSair").addEventListener("click", function(){
+    esquecerSenha();
+    reservas = {};
+    resumoTexto = csvTexto = whatsTexto = "";
+    render();
+    aviso("Senha esquecida nesta aba. Clique em Atualizar para entrar de novo.", "good");
+  });
+
+  carregar(false);
+  setInterval(function(){ if (senha && !document.hidden) carregar(true); }, 30000);
+  document.addEventListener("visibilitychange", function(){
+    if (senha && !document.hidden) carregar(true);
+  });
+})();
+</script>
+</body>
+</html>
