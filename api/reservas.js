@@ -1,10 +1,14 @@
 // API da lista de presentes — Vercel Function (Node.js)
-// GET    /api/reservas            -> { reservas: { slug: {nome, ts} }, total }
-// POST   /api/reservas            -> body { slug, nome, token }   reserva um item
-// DELETE /api/reservas            -> body { slug, token, senha }  devolve um item
+//
+// GET    /api/reservas   -> quais itens estão reservados.
+//                           SEM a senha: devolve só os slugs, sem nome nem data.
+//                           COM a senha: devolve nome, data e nome do item.
+// POST   /api/reservas   -> body { slug, nome, token }          reserva um item
+// DELETE /api/reservas   -> body { slug, token, senha }         devolve um item
+//
+// A senha do organizador vem da variável de ambiente SENHA_ADMIN e é enviada
+// no cabeçalho "x-senha". Ela nunca aparece no código nem no repositório.
 
-// A Vercel/Upstash injeta as credenciais com nomes que variam conforme a
-// integração. Aceitamos todos os nomes possíveis para não quebrar o deploy.
 const REST_URL =
   process.env.KV_REST_API_URL ||
   process.env.UPSTASH_REDIS_REST_URL ||
@@ -69,6 +73,25 @@ const ITENS = {
   "relogio-parede": "Relógio de parede"
 };
 
+// Comparação em tempo constante, para não vazar a senha por tempo de resposta.
+function igualSeguro(a, b) {
+  a = String(a || "");
+  b = String(b || "");
+  if (a.length !== b.length) return false;
+  let diferenca = 0;
+  for (let i = 0; i < a.length; i++) diferenca |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diferenca === 0;
+}
+
+// Reconhece o organizador pelo cabeçalho x-senha (preferido) ou ?senha= na URL.
+function ehOrganizador(req) {
+  if (!SENHA_ADMIN) return false;
+  const cabecalho = req.headers ? (req.headers["x-senha"] || "") : "";
+  if (igualSeguro(cabecalho, SENHA_ADMIN)) return true;
+  const naUrl = req.query ? (req.query.senha || "") : "";
+  return igualSeguro(naUrl, SENHA_ADMIN);
+}
+
 async function redis(comando) {
   const resposta = await fetch(REST_URL.replace(/\/+$/, ""), {
     method: "POST",
@@ -100,9 +123,7 @@ function paraObjeto(resultado) {
   if (!resultado) return {};
   if (Array.isArray(resultado)) {
     const obj = {};
-    for (let i = 0; i + 1 < resultado.length; i += 2) {
-      obj[resultado[i]] = resultado[i + 1];
-    }
+    for (let i = 0; i + 1 < resultado.length; i += 2) obj[resultado[i]] = resultado[i + 1];
     return obj;
   }
   if (typeof resultado === "object") return resultado;
@@ -135,13 +156,26 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({
       erro: "banco_nao_configurado",
       mensagem:
-        "O banco Redis não está conectado. No painel da Vercel, confira se as variáveis KV_REST_API_URL e KV_REST_API_TOKEN existem no projeto e refaça o deploy."
+        "O banco Redis não está conectado. No painel da Vercel, confira as variáveis do Upstash e refaça o deploy."
     });
   }
 
   try {
     // ---------- listar ----------
     if (req.method === "GET") {
+      const organizador = ehOrganizador(req);
+
+      // Quem pede os dados completos sem a senha certa recebe uma recusa clara.
+      const querCompleto = req.query && String(req.query.completo || "") === "1";
+      if (querCompleto && !organizador) {
+        return res.status(401).json({
+          erro: "senha_invalida",
+          mensagem: SENHA_ADMIN
+            ? "Senha do organizador incorreta."
+            : "A senha do organizador não foi configurada no servidor (variável SENHA_ADMIN)."
+        });
+      }
+
       const bruto = paraObjeto(await redis(["HGETALL", CHAVE]));
       const reservas = {};
       for (const slug of Object.keys(bruto)) {
@@ -150,11 +184,20 @@ module.exports = async function handler(req, res) {
         if (typeof corpo === "string") {
           try { corpo = JSON.parse(corpo); } catch (e) { corpo = { nome: corpo }; }
         }
-        if (corpo && corpo.nome) {
-          reservas[slug] = { nome: corpo.nome, ts: corpo.ts || null };
-        }
+        if (!corpo || !corpo.nome) continue;
+
+        // Sem senha, o convidado só fica sabendo QUE o item está reservado.
+        // Nome e horário nunca saem do servidor para quem não é o organizador.
+        reservas[slug] = organizador
+          ? { nome: corpo.nome, ts: corpo.ts || null, item: ITENS[slug] }
+          : {};
       }
-      return res.status(200).json({ reservas: reservas, total: Object.keys(ITENS).length });
+
+      return res.status(200).json({
+        reservas: reservas,
+        total: Object.keys(ITENS).length,
+        organizador: organizador
+      });
     }
 
     // ---------- reservar ----------
@@ -178,17 +221,13 @@ module.exports = async function handler(req, res) {
       const gravou = await redis(["HSETNX", CHAVE, slug, registro]);
 
       if (Number(gravou) === 1) {
-        return res.status(200).json({ ok: true, slug: slug, nome: nome, item: ITENS[slug] });
+        return res.status(200).json({ ok: true, slug: slug, item: ITENS[slug] });
       }
 
-      let atual = await redis(["HGET", CHAVE, slug]);
-      if (typeof atual === "string") {
-        try { atual = JSON.parse(atual); } catch (e) { atual = { nome: atual }; }
-      }
+      // Conflito: não revelamos quem pegou, só que já foi pego.
       return res.status(409).json({
         erro: "ja_reservado",
-        por: (atual && atual.nome) || "outra pessoa",
-        mensagem: ITENS[slug] + " acabou de ser escolhido. Escolha outro item."
+        mensagem: ITENS[slug] + " acabou de ser escolhido por outra pessoa. Escolha outro item."
       });
     }
 
@@ -209,8 +248,8 @@ module.exports = async function handler(req, res) {
         try { atual = JSON.parse(atual); } catch (e) { atual = { nome: atual }; }
       }
 
-      const ehDono = token && atual.token && token === atual.token;
-      const ehAdmin = SENHA_ADMIN && senha === SENHA_ADMIN;
+      const ehDono = token && atual.token && igualSeguro(token, atual.token);
+      const ehAdmin = ehOrganizador(req) || (SENHA_ADMIN && igualSeguro(senha, SENHA_ADMIN));
       if (!ehDono && !ehAdmin) {
         return res.status(403).json({
           erro: "sem_permissao",
